@@ -1,79 +1,85 @@
 #include <iostream>
 #include <cmath>
 
-struct DualNumber {
-    double real;
-    double imag;
+// ======================================================
+//      Dual Numbers:  a + bε   with ε² = 0
+// ======================================================
 
-    DualNumber(double r = 0.0, double i = 0.0) : real(r), imag(i) {}
+struct DualNumber {
+    double a;   // real part
+    double b;   // dual part (coefficient of ε)
+
+    DualNumber(double real = 0.0, double dual = 0.0)
+        : a(real), b(dual) {}
 };
 
+// ------------------------------------------------------
+// Operator overloads following EXACT rules from the PDF
+// ------------------------------------------------------
 
-DualNumber operator+(const DualNumber& lhs, const DualNumber& rhs) {
-    return DualNumber(lhs.real + rhs.real, lhs.imag + rhs.imag);
+DualNumber operator+(const DualNumber& x, const DualNumber& y) {
+    return DualNumber(x.a + y.a, x.b + y.b);
 }
 
-
-DualNumber operator-(const DualNumber& lhs, const DualNumber& rhs) {
-    return DualNumber(lhs.real - rhs.real, lhs.imag - rhs.imag);
+DualNumber operator-(const DualNumber& x, const DualNumber& y) {
+    return DualNumber(x.a - y.a, x.b - y.b);
 }
 
-
-DualNumber operator*(const DualNumber& lhs, const DualNumber& rhs) {
-    return DualNumber(
-        lhs.real * rhs.real,
-        lhs.real * rhs.imag + lhs.imag * rhs.real
-    );
+DualNumber operator*(const DualNumber& x, const DualNumber& y) {
+    // (a + bε)(c + dε) = ac + (ad + bc)ε
+    double real = x.a * y.a;
+    double dual = x.a * y.b + x.b * y.a;
+    return DualNumber(real, dual);
 }
 
-
-DualNumber operator/(const DualNumber& lhs, const DualNumber& rhs) {
-    return DualNumber(
-        lhs.real / rhs.real,
-        (lhs.imag * rhs.real - lhs.real * rhs.imag) / (rhs.real * rhs.real)
-    );
+DualNumber operator/(const DualNumber& x, const DualNumber& y) {
+    // (a + bε) / (c + dε) = a/c + (bc - ad) / c² ε
+    double real = x.a / y.a;
+    double dual = (x.b * y.a - x.a * y.b) / (y.a * y.a);
+    return DualNumber(real, dual);
 }
 
+// ------------------------------------------------------
+// Exponential overload: exp(a + bε) = e^a + b e^a ε
+// ------------------------------------------------------
 
-DualNumber operator+(const DualNumber& lhs, double rhs) {
-    return DualNumber(lhs.real + rhs, lhs.imag);
+DualNumber exp(const DualNumber& x) {
+    double e = std::exp(x.a);
+    return DualNumber(e, x.b * e);
 }
 
-DualNumber operator+(double lhs, const DualNumber& rhs) {
-    return DualNumber(lhs + rhs.real, rhs.imag);
+// (needed so exp(double) still works normally)
+using std::exp;
+
+// ------------------------------------------------------
+// Pretty printing
+// ------------------------------------------------------
+
+std::ostream& operator<<(std::ostream& os, const DualNumber& z) {
+    os << z.a << " + " << z.b << "ε";
+    return os;
 }
 
-DualNumber operator-(const DualNumber& lhs, double rhs) {
-    return DualNumber(lhs.real - rhs, lhs.imag);
-}
-
-DualNumber operator-(double lhs, const DualNumber& rhs) {
-    return DualNumber(lhs - rhs.real, -rhs.imag);
-}
-
-DualNumber operator*(const DualNumber& lhs, double rhs) {
-    return DualNumber(lhs.real * rhs, lhs.imag * rhs);
-}
-
-DualNumber operator*(double lhs, const DualNumber& rhs) {
-    return DualNumber(lhs * rhs.real, lhs * rhs.imag);
-}
-
-DualNumber operator/(const DualNumber& lhs, double rhs) {
-    return DualNumber(lhs.real / rhs, lhs.imag / rhs);
-}
-
-
+// ------------------------------------------------------
+// Main test program
+// ------------------------------------------------------
 
 int main() {
-    DualNumber one(1.0, 0.0);
     DualNumber epsilon(0.0, 1.0);
-    DualNumber y = 2.0 + 4.0 * epsilon;
-    DualNumber z = one + epsilon;
+    DualNumber one(1.0, 0.0);
 
-    DualNumber product = y * z;
+    DualNumber y(2.0, 4.0);     // 2 + 4ε
+    DualNumber z = one + epsilon;  // 1 + 1ε
+
+    DualNumber product  = y * z;
     DualNumber quotient = y / z;
+    DualNumber expo     = exp(z);
 
+    std::cout << "y        = " << y        << "\n";
+    std::cout << "z        = " << z        << "\n";
+    std::cout << "y * z    = " << product  << "\n";
+    std::cout << "y / z    = " << quotient << "\n";
+    std::cout << "exp(z)   = " << expo     << "\n";
 
     return 0;
 }
